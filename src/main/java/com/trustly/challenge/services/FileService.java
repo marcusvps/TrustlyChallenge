@@ -2,24 +2,25 @@ package com.trustly.challenge.services;
 
 import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.trustly.challenge.dto.FileDTO;
-import org.springframework.stereotype.Controller;
+import org.apache.commons.lang3.math.NumberUtils;
 
 import java.io.IOException;
 import java.net.URL;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
-import static com.trustly.challenge.extractor.HtmlExtractor.*;
+import static com.trustly.challenge.extractor.HtmlExtractor.getHtmlElements;
 
 public class FileService {
-    private static Map<String, Map<String, List<FileDTO>>> mapSitesCache = new HashMap();
+    private static final Map<String, Map<String, List<FileDTO>>> mapSitesCache = new HashMap();
 
     public static List<FileDTO> getFilesInUrl(String url, boolean isForceUpdate) throws Exception {
         List<FileDTO> retorno = new ArrayList<>();
         List<HtmlElement> htmlElements = getHtmlElements("//span/a[@class='js-navigation-open Link--primary']", url,isForceUpdate);
         Map<String, List<FileDTO>> mapFile = new HashMap<>();
-        Map<String, List<FileDTO>> mapResponse = new HashMap<>();
+        Map<String, List<FileDTO>> mapResponse;
 
         if(!isForceUpdate && mapSitesCache.containsKey(url)){
             mapResponse = mapSitesCache.get(url);
@@ -32,7 +33,7 @@ public class FileService {
         }
 
         mapResponse.forEach((extension, files) -> {
-            float bytesTotal = 0l;
+            float bytesTotal = 0L;
             Integer rows = 0;
             for (FileDTO file : files) {
                 bytesTotal += file.getBytes();
@@ -55,7 +56,7 @@ public class FileService {
             String[] pathSplit = htmlElement.getTextContent().split("/");
             String extension = getFileExtension(pathSplit);
             URL urlFolder = htmlElement.click().getWebResponse().getWebRequest().getUrl();
-            List<HtmlElement> filesInSubFolder = extractFilesInSubFolder(htmlElement,urlFolder,isForceUpdate);
+            List<HtmlElement> filesInSubFolder = extractFilesInSubFolder(urlFolder,isForceUpdate);
             boolean isFolder = !filesInSubFolder.isEmpty();
             if (!isFolder) {
                 addFileInMap(mapFile, extension,urlFolder,isForceUpdate);
@@ -87,13 +88,13 @@ public class FileService {
     }
 
 
-    private static List<HtmlElement> extractFilesInSubFolder(HtmlElement htmlElement,URL urlFolder,boolean isForceUpdate) {
+    private static List<HtmlElement> extractFilesInSubFolder(URL urlFolder, boolean isForceUpdate) {
         try {
             return getHtmlElements("//span/a[@class='js-navigation-open Link--primary']", urlFolder.toURI().toString(),isForceUpdate);
 
 
         } catch (Exception e) {
-            System.out.println("Erro + " + e);
+            e.printStackTrace();
             return null;
         }
 
@@ -105,22 +106,46 @@ public class FileService {
         try {
             FileDTO file = new FileDTO();
             file.setExtension(extension);
-            List<HtmlElement> linesAndBytesElements =
-                    getHtmlElements("//div[@class='text-mono f6 flex-auto pr-3 flex-order-2 flex-md-order-1']", urlFolder.toURI().toString(), isForceUpdate);
-            String textWithElements = linesAndBytesElements.get(0).getTextContent().replace("\n","").trim();
-            String[] split = textWithElements.split(" ");
-            float bytes = Float.parseFloat(split[13]);
-            Integer lines = Integer.valueOf(split[0]);
-            file.setLines(lines);
-            file.setBytes(bytes);
-
+            setBytesAndLines(urlFolder, isForceUpdate, file);
             if (!mapFile.containsKey(extension)) {
                 mapFile.put(extension, new ArrayList<>());
             }
             mapFile.get(extension).add(file);
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         }
 
+    }
+
+    private static void setBytesAndLines(URL urlFolder, boolean isForceUpdate, FileDTO file) throws Exception {
+        List<HtmlElement> linesAndBytesElements =
+                getHtmlElements("//div[@class='text-mono f6 flex-auto pr-3 flex-order-2 flex-md-order-1']", urlFolder.toURI().toString(), isForceUpdate);
+
+        String textWithElements = linesAndBytesElements.get(0).getTextContent().replace("\n","").replace("\t","").trim();
+        String[] split = textWithElements.split(" ");
+        List<String> listBytesAndLines = Arrays.stream(split)
+                .filter(NumberUtils::isParsable)
+                .collect(Collectors.toList());
+
+
+        if(listBytesAndLines.size() == 1){
+            setBytes(file, listBytesAndLines.get(0));
+            setLines(file, "0");
+        }else{
+            setLines(file, listBytesAndLines.get(0));
+            setBytes(file, listBytesAndLines.get(1));
+        }
+    }
+
+
+
+    private static void setLines(FileDTO file, String s) {
+        Integer lines = Integer.valueOf(s);
+        file.setLines(lines);
+    }
+
+    private static void setBytes(FileDTO file, String s) {
+        float bytes = Float.parseFloat(s);
+        file.setBytes(bytes);
     }
 }
