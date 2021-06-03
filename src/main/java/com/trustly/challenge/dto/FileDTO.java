@@ -11,7 +11,7 @@ public class FileDTO {
     private String extension;
     private Integer count;
     private Integer lines;
-    private Long bytes;
+    private float bytes;
 
 
 }

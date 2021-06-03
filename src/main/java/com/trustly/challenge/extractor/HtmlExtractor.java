@@ -14,7 +14,7 @@ import java.util.Map;
 public class HtmlExtractor {
     private static final WebClient client = new WebClient();
     private static final Map<String, HtmlPage> htmlPages = new HashMap<>();
-    private static final Map<HtmlPage, List<HtmlElement>> htmlElementsByPage = new HashMap<>();
+    private static final Map<String, List<HtmlElement>> htmlElementsByPage = new HashMap<>();
 
     private HtmlExtractor() {}
 
@@ -46,11 +46,12 @@ public class HtmlExtractor {
      * @return
      */
     public static List<HtmlElement> getHtmlElements(String cssClass,HtmlPage htmlPage, boolean isForceUpdate){
-        if(!isForceUpdate && htmlElementsByPage.containsKey(htmlPage)){
-            return htmlElementsByPage.get(htmlPage);
+        String key = htmlPage + cssClass;
+        if(!isForceUpdate && htmlElementsByPage.containsKey(key)){
+            return htmlElementsByPage.get(key);
         }
         List<HtmlElement> elements = (List<HtmlElement>) htmlPage.getByXPath(cssClass);
-        htmlElementsByPage.put(htmlPage,elements);
+        htmlElementsByPage.put(key,elements);
         return elements;
     }
 
