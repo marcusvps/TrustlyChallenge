@@ -24,8 +24,8 @@ public class HtmlExtractor {
      * @return
      * @throws Exception
      */
-    public static HtmlPage getHtmlForPage(String url) throws Exception {
-        if(htmlPages.containsKey(url)){
+    public static HtmlPage getHtmlForPage(String url,boolean isForceUpdate) throws Exception {
+        if(!isForceUpdate && htmlPages.containsKey(url)){
             return htmlPages.get(url);
         }
         client.getOptions().setCssEnabled(false);
@@ -45,8 +45,8 @@ public class HtmlExtractor {
      * @param htmlPage
      * @return
      */
-    public static List<HtmlElement> getHtmlElements(String cssClass,HtmlPage htmlPage){
-        if(htmlElementsByPage.containsKey(htmlPage)){
+    public static List<HtmlElement> getHtmlElements(String cssClass,HtmlPage htmlPage, boolean isForceUpdate){
+        if(!isForceUpdate && htmlElementsByPage.containsKey(htmlPage)){
             return htmlElementsByPage.get(htmlPage);
         }
         List<HtmlElement> elements = (List<HtmlElement>) htmlPage.getByXPath(cssClass);
@@ -62,9 +62,9 @@ public class HtmlExtractor {
      * @return
      * @throws Exception
      */
-    public static List<HtmlElement> getHtmlElements(String cssClass,String url) throws Exception {
-        HtmlPage htmlPage = HtmlExtractor.getHtmlForPage(url);
-        return HtmlExtractor.getHtmlElements(cssClass,htmlPage);
+    public static List<HtmlElement> getHtmlElements(String cssClass,String url, boolean isForceUpdate) throws Exception {
+        HtmlPage htmlPage = HtmlExtractor.getHtmlForPage(url,isForceUpdate);
+        return HtmlExtractor.getHtmlElements(cssClass,htmlPage,isForceUpdate);
     }
 
 }

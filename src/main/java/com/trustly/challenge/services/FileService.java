@@ -12,29 +12,29 @@ import static com.trustly.challenge.extractor.HtmlExtractor.*;
 @Controller
 public class FileService {
 
-    public Map<String, List<FileDTO>> getFilesInUrl(String url) throws Exception {
-        List<HtmlElement> htmlElements = getHtmlElements("//span/a[@class='js-navigation-open Link--primary']", url);
+    public Map<String, List<FileDTO>> getFilesInUrl(String url, boolean isForceUpdate) throws Exception {
+        List<HtmlElement> htmlElements = getHtmlElements("//span/a[@class='js-navigation-open Link--primary']", url,isForceUpdate);
         Map<String, List<FileDTO>> mapFile = new HashMap<>();
 
         htmlElements.forEach(htmlElement -> {
-            identifyFiles(htmlElement,mapFile);
+            identifyFiles(htmlElement,mapFile,isForceUpdate);
 
 
         });
         return mapFile;
     }
 
-    public void identifyFiles(HtmlElement htmlElement, Map<String, List<FileDTO>> mapFile) {
+    public void identifyFiles(HtmlElement htmlElement, Map<String, List<FileDTO>> mapFile, boolean isForceUpdate) {
         String[] pathSplit = htmlElement.getTextContent().split("/");
         int lastPosition = pathSplit.length - 1;
         String extension = pathSplit[lastPosition];
-        List<HtmlElement> filesInSubFolder = extractFilesInSubFolder(htmlElement);
+        List<HtmlElement> filesInSubFolder = extractFilesInSubFolder(htmlElement,isForceUpdate);
         boolean isFolder = !filesInSubFolder.isEmpty();
         if (!isFolder) {
             addFileInMap(mapFile, extension);
         }else{
             for (HtmlElement element : filesInSubFolder) {
-                identifyFiles(element, mapFile);
+                identifyFiles(element, mapFile,isForceUpdate);
             }
         }
 
@@ -43,10 +43,10 @@ public class FileService {
     }
 
 
-    private List<HtmlElement> extractFilesInSubFolder(HtmlElement htmlElement) {
+    private List<HtmlElement> extractFilesInSubFolder(HtmlElement htmlElement,boolean isForceUpdate) {
         try {
             URL urlFolder = htmlElement.click().getWebResponse().getWebRequest().getUrl();
-            return getHtmlElements("//span/a[@class='js-navigation-open Link--primary']", urlFolder.toURI().toString());
+            return getHtmlElements("//span/a[@class='js-navigation-open Link--primary']", urlFolder.toURI().toString(),isForceUpdate);
 
         } catch (Exception e) {
             System.out.println("erro + " + e);
