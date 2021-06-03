@@ -1,6 +1,8 @@
 package com.trustly.challenge.controller;
 
 import com.trustly.challenge.dto.FileDTO;
+import com.trustly.challenge.services.FileService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -8,29 +10,35 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/files")
 public class WebScrapingController {
 
+    @Autowired
+    private FileService service;
+
     @GetMapping
     @ResponseBody
-    public ResponseEntity<List<FileDTO>> getFilesInformation(){
-        FileDTO fileDTO = new FileDTO();
-        fileDTO.setCount(1);
-        fileDTO.setExtension(".java");
-        fileDTO.setLines(145);
-        fileDTO.setBytes(493349L);
+    public ResponseEntity<List<FileDTO>> getFilesInformation() throws Exception {
+        String url = "https://github.com/marcusvps/angular-with-json-server/tree/master/json-server"; //todo receber como parametro
+        List<FileDTO> retorno = new ArrayList<>();
 
-        FileDTO fileDTO2 = new FileDTO();
-        fileDTO2.setCount(1);
-        fileDTO2.setExtension(".java");
-        fileDTO2.setLines(145);
-        fileDTO2.setBytes(493349L);
+        Map<String, List<FileDTO>> mapFilesInUrl = service.getFilesInUrl(url);
+        mapFilesInUrl.forEach((extension, files) -> {
+                FileDTO file = new FileDTO();
+                file.setExtension(extension);
+                file.setCount(files.size());
+                file.setBytes(0L);
+                file.setLines(0);
+                retorno.add(file);
+                });
 
-        return new ResponseEntity<>(Arrays.asList(fileDTO, fileDTO2), HttpStatus.OK);
+
+        return new ResponseEntity<>(retorno, HttpStatus.OK);
 
 
     }
