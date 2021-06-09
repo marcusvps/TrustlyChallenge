@@ -10,16 +10,25 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- *
+ * Extractor of HTML from an HTML page in Web;
  */
 public class HtmlPageExtractor {
     private static final WebClient client = new WebClient();
     private static final Map<String, HtmlPage> htmlPages = new HashMap<>();
 
 
-    private HtmlPageExtractor() {}
+    private HtmlPageExtractor() {
+    }
 
 
+    /**
+     * Extract the HTML of a page based on the URL;
+     *
+     * @param url
+     * @param isForceUpdate
+     * @return
+     * @throws BusinessException
+     */
     public static HtmlPage getHtmlForPage(String url, boolean isForceUpdate) throws BusinessException {
         if (!isForceUpdate && isHtmlPageInCache(url)) {
             return htmlPages.get(url);
@@ -38,22 +47,31 @@ public class HtmlPageExtractor {
         }
     }
 
+    /**
+     * Check if HTML Page is already mapped in cache
+     *
+     * @param url
+     * @return
+     */
     private static boolean isHtmlPageInCache(String url) {
         return htmlPages.containsKey(url);
     }
 
+    /**
+     * Enable Javascript when extract HTML
+     *
+     * @param statusJs
+     */
     private static void enableJavascript(boolean statusJs) {
         client.getOptions().setJavaScriptEnabled(statusJs);
     }
 
+    /**
+     * Enable CSS when extract HTML
+     *
+     * @param statusCSS
+     */
     private static void enableCss(boolean statusCSS) {
         client.getOptions().setCssEnabled(statusCSS);
     }
-
-
-
-
 }
-
-
-

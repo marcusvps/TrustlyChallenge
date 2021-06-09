@@ -5,16 +5,14 @@ import com.trustly.challenge.constants.BusinessConstants;
 import com.trustly.challenge.dto.FileDTO;
 import com.trustly.challenge.exception.BusinessException;
 import com.trustly.challenge.extractor.HtmlElementExtractor;
-import org.apache.commons.lang3.math.NumberUtils;
+import com.trustly.challenge.util.FileUtil;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 
 public class FileService {
@@ -23,6 +21,13 @@ public class FileService {
 
     private static final Map<String, Map<String, List<FileDTO>>> mapSitesCache = new HashMap<>();
 
+    /**
+     * Identify and retrieve files within a github repository.
+     * @param url
+     * @param isForceUpdate
+     * @return
+     * @throws BusinessException
+     */
     public static List<FileDTO> getFilesInUrl(String url, boolean isForceUpdate) throws BusinessException {
         List<FileDTO> filesDTO = new ArrayList<>();
         Map<String, List<FileDTO>> mapFilesHtmlElements = new HashMap<>();
@@ -43,6 +48,11 @@ public class FileService {
         return filesDTO;
     }
 
+    /**
+     * Fills the file list with everything found on the HtmlPage
+     * @param filesDTO
+     * @param mapFilesHtmlElements
+     */
     private static void fillListWithFiles(List<FileDTO> filesDTO, Map<String, List<FileDTO>> mapFilesHtmlElements) {
         mapFilesHtmlElements.forEach((extension, files) -> {
             float bytesTotal = 0L;
@@ -57,15 +67,17 @@ public class FileService {
         });
     }
 
-    private static void saveSiteWithFilesInCache(String url, Map<String, List<FileDTO>> mapFilesHtmlElements) {
-        mapSitesCache.put(url, mapFilesHtmlElements);
-    }
-
-
-    public static void identifyFiles(HtmlElement htmlElement, Map<String, List<FileDTO>> mapFile, boolean isForceUpdate) throws BusinessException {
+       /**
+     * Browse folders and subfolders identifying files
+     * @param htmlElement
+     * @param mapFile
+     * @param isForceUpdate
+     * @throws BusinessException
+     */
+    private static void identifyFiles(HtmlElement htmlElement, Map<String, List<FileDTO>> mapFile, boolean isForceUpdate) throws BusinessException {
         try {
             String[] pathSplit = htmlElement.getTextContent().split("/");
-            String extension = getFileExtension(pathSplit);
+            String extension = FileExtensionService.getFileExtension(pathSplit);
             URL urlFolder = htmlElement.click().getWebResponse().getWebRequest().getUrl();
             
             List<HtmlElement> filesInSubFolder = extractFilesInSubFolder(urlFolder,isForceUpdate);
@@ -83,125 +95,79 @@ public class FileService {
         } catch (IndexOutOfBoundsException e){
             throw new BusinessException("To many request to GitHub");
         }
-
-
-
-
-    }
-
-    private static String getFileExtension(String[] pathSplit) {
-        int lastPosition = pathSplit.length - 1;
-        String fileName = pathSplit[lastPosition];
-        Pattern patter = Pattern.compile(BusinessConstants.REGEX.REGEX_FILE_EXTENSION.getText());
-        Matcher matcher = patter.matcher(fileName);
-        if(matcher.find()){
-            return matcher.group();
-        }else{
-            return fileName;
-        }
     }
 
 
+
+    /**
+     * Recovers the file that are inside subfolders
+     * @param urlFolder
+     * @param isForceUpdate
+     * @return
+     * @throws BusinessException
+     */
     private static List<HtmlElement> extractFilesInSubFolder(URL urlFolder, boolean isForceUpdate) throws BusinessException {
             return HtmlElementExtractor
                     .getHtmlElements(BusinessConstants.CSS.CSS_FILES_DIV_GIT_HUB.getText(),
-                            extractURI(urlFolder),
+                            FileUtil.extractURI(urlFolder),
                             isForceUpdate);
         
     }
 
-    private static String extractURI(URL urlFolder) throws BusinessException {
-        try {
-            return urlFolder.toURI().toString();
-        } catch (URISyntaxException e) {
-            throw new BusinessException("URL File with the wrong format");
-        }
+    /**
+     * Add Site URL to cache map
+     * @param url
+     * @param mapFilesHtmlElements
+     */
+    private static void saveSiteWithFilesInCache(String url, Map<String, List<FileDTO>> mapFilesHtmlElements) {
+        mapSitesCache.put(url, mapFilesHtmlElements);
     }
 
 
+    /**
+     * Add the file to the file map.
+     * @param mapFile
+     * @param extension
+     * @param urlFolder
+     * @param isForceUpdate
+     * @throws BusinessException
+     */
     private static void addFileInMap(Map<String, List<FileDTO>> mapFile, String extension, URL urlFolder, boolean isForceUpdate) throws BusinessException {
         
             FileDTO file = new FileDTO();
             file.setExtension(extension);
-            setBytesAndLines(urlFolder, isForceUpdate, file);
+            FilesInfoService.setBytesAndLines(urlFolder, isForceUpdate, file);
             if (isAFileExtensionNotMapped(mapFile, extension)) {
                 mapFile.put(extension, new ArrayList<>());
             }
             addFileInAlreadyMappedExtension(mapFile, extension, file);
-
     }
 
+    /**
+     * Checks if the file extension has already been mapped
+     * @param mapFile
+     * @param extension
+     * @param file
+     */
     private static void addFileInAlreadyMappedExtension(Map<String, List<FileDTO>> mapFile, String extension, FileDTO file) {
         mapFile.get(extension).add(file);
     }
 
+    /**
+     *
+     * @param mapFile
+     * @param extension
+     * @return
+     */
     private static boolean isAFileExtensionNotMapped(Map<String, List<FileDTO>> mapFile, String extension) {
         return !mapFile.containsKey(extension);
     }
 
-    private static void setBytesAndLines(URL urlFolder, boolean isForceUpdate, FileDTO file) throws BusinessException {
-
-        List<String> listBytesAndLines = recoverBytesAndLines(urlFolder,isForceUpdate);
-
-        if(fileOnlyHasSizeInformation(listBytesAndLines)){
-            setBytes(file, listBytesAndLines.get(0));
-            setLines(file, "0");
-        }else{
-            setLines(file, listBytesAndLines.get(0));
-            setBytes(file, listBytesAndLines.get(1));
-        }
-    }
-
-    private static List<String> recoverBytesAndLines(URL urlFolder, boolean isForceUpdate) throws BusinessException {
-        List<HtmlElement> linesAndBytesElements = recoverFilesInfos(urlFolder, isForceUpdate);
-
-        String lineWithBytesAndLinesInfos = removeInvalidCharactesInHtmlElement(linesAndBytesElements);
-
-        String[] linesAndBytesSplit = lineWithBytesAndLinesInfos.split(BusinessConstants.REGEX.BLANK_SPACE.getText());
-
-        return Arrays.stream(linesAndBytesSplit)
-        .filter(NumberUtils::isParsable)
-        .collect(Collectors.toList());
-    }
-
-    private static boolean fileOnlyHasSizeInformation(List<String> listBytesAndLines) {
-        return listBytesAndLines.size() == 1;
-    }
-
-    private static String removeInvalidCharactesInHtmlElement(List<HtmlElement> linesAndBytesElements) throws BusinessException {
-        if(!linesAndBytesElements.isEmpty()){
-            try {
-                return linesAndBytesElements
-                        .get(0)
-                        .getTextContent()
-                        .replace("\n", "")
-                        .replace("\t", "").trim();
-            } catch (IndexOutOfBoundsException e) {
-                throw new BusinessException("Failed to retrieve file information.");
-            }
-        }
-        return "";
-
-    }
-
-    private static List<HtmlElement> recoverFilesInfos(URL urlFolder, boolean isForceUpdate) throws BusinessException {
-        return HtmlElementExtractor.
-                getHtmlElements(BusinessConstants.CSS.CSS_INFOS_FILES_GIT_HUB.getText(),
-                                extractURI(urlFolder),
-                                isForceUpdate);
-    }
-
-
-    private static void setLines(FileDTO file, String s) {
-        Integer lines = Integer.valueOf(s);
-        file.setLines(lines);
-    }
-
-    private static void setBytes(FileDTO file, String s) {
-        float bytes = Float.parseFloat(s);
-        file.setBytes(bytes);
-    }
-
+    /**
+     * Check if Site URL is already mapped in cache
+     * @param url
+     * @return
+     */
     private static boolean isSiteInCache(String url) {
         return mapSitesCache.containsKey(url);
     }
