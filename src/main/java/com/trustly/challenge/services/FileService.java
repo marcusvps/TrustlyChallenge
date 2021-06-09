@@ -124,9 +124,8 @@ public class FileService {
             setBytesAndLines(urlFolder, isForceUpdate, file);
             if (isAFileExtensionNotMapped(mapFile, extension)) {
                 mapFile.put(extension, new ArrayList<>());
-            }else{
-                addFileInAlreadyMappedExtension(mapFile, extension, file);
             }
+            addFileInAlreadyMappedExtension(mapFile, extension, file);
 
     }
 
