@@ -80,6 +80,8 @@ public class FileService {
             }
         } catch (IOException e) {
             throw new BusinessException("Unable to click on element: " + htmlElement.getTextContent());
+        } catch (IndexOutOfBoundsException e){
+            throw new BusinessException("To many request to GitHub");
         }
 
 
@@ -166,12 +168,20 @@ public class FileService {
         return listBytesAndLines.size() == 1;
     }
 
-    private static String removeInvalidCharactesInHtmlElement(List<HtmlElement> linesAndBytesElements) {
-        return linesAndBytesElements
-                .get(0)
-                .getTextContent()
-                .replace("\n", "")
-                .replace("\t", "").trim();
+    private static String removeInvalidCharactesInHtmlElement(List<HtmlElement> linesAndBytesElements) throws BusinessException {
+        if(!linesAndBytesElements.isEmpty()){
+            try {
+                return linesAndBytesElements
+                        .get(0)
+                        .getTextContent()
+                        .replace("\n", "")
+                        .replace("\t", "").trim();
+            } catch (IndexOutOfBoundsException e) {
+                throw new BusinessException("Failed to retrieve file information.");
+            }
+        }
+        return "";
+
     }
 
     private static List<HtmlElement> recoverFilesInfos(URL urlFolder, boolean isForceUpdate) throws BusinessException {
