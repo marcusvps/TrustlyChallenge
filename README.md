@@ -6,3 +6,7 @@
 >>> <b>forceUpdate</b>:Set to true if you want the site's HTML not to be fetched from the cache; Ex: true; Default: false.
 
 
+> Postman Collection
+>> https://github.com/marcusvps/TrustlyChallenge/blob/main/Trustly%20-%20Challenge.postman_collection.json
+
+
