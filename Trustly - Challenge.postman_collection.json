@@ -26,7 +26,7 @@
 							"key": "url",
 							"value": "https://github.com/marcusvps/angular-with-json-server",
 							"description": "Site you want to extract the information",
-							"disabled": true
+							"disabled": false
 						},
 						{
 							"key": "forceUpdate",
