@@ -1,0 +1,43 @@
+{
+	"info": {
+		"_postman_id": "6ee44591-d917-4474-bd04-5e68a531f6b4",
+		"name": "Trustly - Challenge",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Files",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://trustlytechnicalchallenge.herokuapp.com/files",
+					"protocol": "https",
+					"host": [
+						"trustlytechnicalchallenge",
+						"herokuapp",
+						"com"
+					],
+					"path": [
+						"files"
+					],
+					"query": [
+						{
+							"key": "url",
+							"value": "https://github.com/marcusvps/angular-with-json-server",
+							"description": "Site you want to extract the information",
+							"disabled": true
+						},
+						{
+							"key": "forceUpdate",
+							"value": "true",
+							"description": "Set to true if you want the site's HTML not to be fetched from the cache.",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
